@@ -133,11 +133,6 @@ function startTracking() {
             timestamp: Date.now(),
           };
 
-          fs.writeFileSync(
-            path.join(__dirname, `../data/data-${data.timestamp}.json`),
-            JSON.stringify(data)
-          );
-
           mainWindow.webContents.send("take-screenshot", data);
 
           log.info(

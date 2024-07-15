@@ -5,9 +5,7 @@
 /server/node_modules
 /DesktopApp/node_modules
 /client/node_modules
-/DesktopApp/data/*
-/DesktopApp/logs/*
-/DesktopApp/images/*
+
 /.pnp
 .pnp.js
 
