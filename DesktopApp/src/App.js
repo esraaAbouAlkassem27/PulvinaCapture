@@ -16,9 +16,10 @@ import { styled } from "@mui/material/styles";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import axios from "axios";
 const path = require("path");
+const os = window.require("os");
 
 const { ipcRenderer } = window.require("electron");
-
+const hostname = os.hostname();
 const IOSSwitch = styled((props) => (
   <Switch focusVisibleClassName=".Mui-focusVisible" disableRipple {...props} />
 ))(({ theme }) => ({
@@ -92,10 +93,12 @@ function App() {
   const fetchWeeklyTrackedTime = async () => {
     try {
       const weeklyResponse = await axios.get(
-        "http://localhost:4000/get-weekly-tracked-time"
+        "http://70.82.4.42:4000/get-weekly-tracked-time",
+        { params: { hostname } }
       );
       const lastTrackedResponse = await axios.get(
-        "http://localhost:4000/get-last-tracked-time"
+        "http://70.82.4.42:4000/get-last-tracked-time",
+        { params: { hostname } }
       );
 
       logMessage(
@@ -150,7 +153,8 @@ function App() {
         data.screenshotPath,
         data.mouseMovements,
         data.keyPresses,
-        data.timestamp
+        data.timestamp,
+        data.hostname
       );
       setShowDeleteIcon(true);
       setTimeout(() => {
@@ -168,9 +172,10 @@ function App() {
     try {
       logMessage(`Tracking stopped at weekly tracked time: ${timer}`);
       const response = await axios.post(
-        "http://localhost:4000/update-tracked-time",
+        "http://70.82.4.42:4000/update-tracked-time",
         {
           trackedTime: sessionDuration,
+          hostname: hostname,
         }
       );
       const newWeeklyTotal = response.data.totalHoursThisWeek * 3600000; // Convert hours to milliseconds
@@ -203,12 +208,20 @@ function App() {
   };
 
   const logMessage = (message) => {
-    const updatedLogs = [
-      ...logMessages,
-      `[${new Date().toISOString()}] ${message}`,
-    ];
-    setLogMessages(updatedLogs);
-    ipcRenderer.send("log-message", message);
+    try {
+      const updatedLogs = [
+        ...logMessages,
+        `[${new Date().toISOString()}] ${message}`,
+      ];
+      setLogMessages(updatedLogs);
+      ipcRenderer.send("log-message", updatedLogs);
+    } catch (error) {
+      ipcRenderer.send(
+        "log-message",
+        `ErrorsESRAAAAAAAAAAA: ${error.message}` + error
+      );
+      console.log("🚀 ~ logMessage ~ error:", error);
+    }
   };
 
   const formatTime = (time) => {
@@ -222,7 +235,8 @@ function App() {
     screenshotPath,
     movements,
     keyPresses,
-    screenshotTimestamp
+    screenshotTimestamp,
+    hostname
   ) => {
     try {
       const base64Image = await ipcRenderer.invoke(
@@ -238,19 +252,20 @@ function App() {
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: "image/png" });
 
-      const screenshotTimestampServer = new Date().toUTCString();
+      const screenshotTimestampServer = new Date();
       formData.append("screenshot", blob, path.basename(screenshotPath));
 
       formData.append("mouseMovements", JSON.stringify(movements));
       formData.append("keyPresses", JSON.stringify(keyPresses));
       formData.append("timestamp", screenshotTimestampServer);
+      formData.append("hostname", hostname);
       logMessage(
         `Uploading screenshot at ${screenshotTimestampServer} tttttt:${new Date(
           screenshotTimestamp
         ).toLocaleString()}`
       );
       const response = await axios.post(
-        "http://localhost:4000/upload-screenshot",
+        "http://70.82.4.42:4000/upload-screenshot",
         formData,
         {
           headers: {
@@ -278,7 +293,8 @@ function App() {
   const deleteScreenshot = async (id) => {
     try {
       const response = await axios.delete(
-        `http://localhost:4000/delete-screenshot/${id}`
+        `http://70.82.4.42:4000/delete-screenshot/${id}`,
+        { params: { hostname } }
       );
 
       logMessage(response.data);

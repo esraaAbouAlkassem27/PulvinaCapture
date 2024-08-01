@@ -42,10 +42,10 @@ app.post(
   upload.single("screenshot"),
   async (req, res) => {
     try {
-      const { projectName, mouseMovements, keyPresses } = req.body;
+      const { projectName, mouseMovements, keyPresses, timestamp } = req.body;
       console.log("🚀 ~  req.body:", req.body);
       const screenshot = req.file.buffer;
-      const timestamp = new Date();
+      
 
       const newScreenshot = new Screenshot({
         projectName,

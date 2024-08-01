@@ -1,0 +1,22 @@
+directories:
+  output: dist
+  buildResources: assets
+files:
+  - filter:
+      - build/**/*
+      - dist/**/*
+extraMetadata:
+  main: build/electron.js
+appId: your.app.id
+productName: Time tracking
+win:
+  target: nsis
+mac:
+  target: dmg
+linux:
+  target:
+    - AppImage
+    - deb
+    - rpm
+extends: react-cra
+electronVersion: 31.3.1

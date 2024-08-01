@@ -11,6 +11,7 @@ const log = require("electron-log");
 const { GlobalKeyboardListener } = require("node-global-key-listener");
 const player = require("node-wav-player");
 const axios = require("axios");
+const os = require("os");
 
 let mainWindow;
 let isTracking = false;
@@ -27,20 +28,26 @@ let lastKeyTime = 0;
 
 async function createWindow() {
   const { default: isDev } = await import("electron-is-dev");
+  console.log("🚀 ~ createWindow ~ isDev:", isDev);
   mainWindow = new BrowserWindow({
     width: 400,
     height: 600,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      preload: path.join(__dirname, "preload.js"),
     },
     backgroundColor: "#FFFFFF",
   });
 
-  const startUrl = isDev
-    ? "http://localhost:3000"
-    : `file://${path.join(__dirname, "../build/index.html")}`;
-
+  let startUrl;
+  if (isDev) {
+    startUrl = "http://localhost:3000";
+  } else {
+    const buildPath = path.join(__dirname, "../build/index.html");
+    startUrl = `file://${buildPath}`;
+    console.log("Production build path:", buildPath); // Log the build path
+  }
   mainWindow.loadURL(startUrl);
 
   mainWindow.on("closed", () => {
@@ -82,7 +89,7 @@ async function takeScreenshot() {
 function startTracking() {
   isTracking = true;
   trackingStartTime = Date.now();
-
+  let captureCount = 0;
   screenshotInterval = setInterval(async () => {
     try {
       if (isTracking) {
@@ -97,7 +104,7 @@ function startTracking() {
       keyPresses = [];
 
       // Capture mouse movements and key presses
-      let captureCount = 0;
+
       keyboardListener = new GlobalKeyboardListener();
       keyboardListener.addListener(function (e, down) {
         if (down && keyPresses.length < 6) {
@@ -131,12 +138,13 @@ function startTracking() {
             mouseMovements,
             keyPresses,
             timestamp: Date.now(),
+            hostname: os.hostname(), // Add this line
           };
 
           mainWindow.webContents.send("take-screenshot", data);
 
           log.info(
-            `Captured screenshot, mouse movements, and key presses at ${new Date().toLocaleString()}`
+            `Captured screenshot, mouse movements, and key presses at ${new Date().toLocaleString()} os hostname: ${os.hostname()}`
           );
 
           // Reset for next capture
@@ -174,7 +182,7 @@ async function stopTracking() {
 
   try {
     // const response = await axios.post(
-    //   "http://localhost:4000/update-tracked-time",
+    //   "http://70.82.4.42:4000/update-tracked-time",
     //   {
     //     trackedTime: sessionDuration,
     //   }
@@ -198,7 +206,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (mainWindow === null) {
+  if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });
